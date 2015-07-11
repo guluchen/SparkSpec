@@ -1,0 +1,988 @@
+
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+%% ODER: format ==         = "\mathrel{==}"
+%% ODER: format /=         = "\neq "
+%
+%
+\makeatletter
+\@ifundefined{lhs2tex.lhs2tex.sty.read}%
+  {\@namedef{lhs2tex.lhs2tex.sty.read}{}%
+   \newcommand\SkipToFmtEnd{}%
+   \newcommand\EndFmtInput{}%
+   \long\def\SkipToFmtEnd#1\EndFmtInput{}%
+  }\SkipToFmtEnd
+
+\newcommand\ReadOnlyOnce[1]{\@ifundefined{#1}{\@namedef{#1}{}}\SkipToFmtEnd}
+\usepackage{amstext}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\DeclareFontFamily{OT1}{cmtex}{}
+\DeclareFontShape{OT1}{cmtex}{m}{n}
+  {<5><6><7><8>cmtex8
+   <9>cmtex9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmtex10}{}
+\DeclareFontShape{OT1}{cmtex}{m}{it}
+  {<-> ssub * cmtt/m/it}{}
+\newcommand{\texfamily}{\fontfamily{cmtex}\selectfont}
+\DeclareFontShape{OT1}{cmtt}{bx}{n}
+  {<5><6><7><8>cmtt8
+   <9>cmbtt9
+   <10><10.95><12><14.4><17.28><20.74><24.88>cmbtt10}{}
+\DeclareFontShape{OT1}{cmtex}{bx}{n}
+  {<-> ssub * cmtt/bx/n}{}
+\newcommand{\tex}[1]{\text{\texfamily#1}}	% NEU
+
+\newcommand{\Sp}{\hskip.33334em\relax}
+
+
+\newcommand{\Conid}[1]{\mathit{#1}}
+\newcommand{\Varid}[1]{\mathit{#1}}
+\newcommand{\anonymous}{\kern0.06em \vbox{\hrule\@width.5em}}
+\newcommand{\plus}{\mathbin{+\!\!\!+}}
+\newcommand{\bind}{\mathbin{>\!\!\!>\mkern-6.7mu=}}
+\newcommand{\rbind}{\mathbin{=\mkern-6.7mu<\!\!\!<}}% suggested by Neil Mitchell
+\newcommand{\sequ}{\mathbin{>\!\!\!>}}
+\renewcommand{\leq}{\leqslant}
+\renewcommand{\geq}{\geqslant}
+\usepackage{polytable}
+
+%mathindent has to be defined
+\@ifundefined{mathindent}%
+  {\newdimen\mathindent\mathindent\leftmargini}%
+  {}%
+
+\def\resethooks{%
+  \global\let\SaveRestoreHook\empty
+  \global\let\ColumnHook\empty}
+\newcommand*{\savecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\savecolumns[#1]}}
+\newcommand*{\restorecolumns}[1][default]%
+  {\g@addto@macro\SaveRestoreHook{\restorecolumns[#1]}}
+\newcommand*{\aligncolumn}[2]%
+  {\g@addto@macro\ColumnHook{\column{#1}{#2}}}
+
+\resethooks
+
+\newcommand{\onelinecommentchars}{\quad-{}- }
+\newcommand{\commentbeginchars}{\enskip\{-}
+\newcommand{\commentendchars}{-\}\enskip}
+
+\newcommand{\visiblecomments}{%
+  \let\onelinecomment=\onelinecommentchars
+  \let\commentbegin=\commentbeginchars
+  \let\commentend=\commentendchars}
+
+\newcommand{\invisiblecomments}{%
+  \let\onelinecomment=\empty
+  \let\commentbegin=\empty
+  \let\commentend=\empty}
+
+\visiblecomments
+
+\newlength{\blanklineskip}
+\setlength{\blanklineskip}{0.66084ex}
+
+\newcommand{\hsindent}[1]{\quad}% default is fixed indentation
+\let\hspre\empty
+\let\hspost\empty
+\newcommand{\NB}{\textbf{NB}}
+\newcommand{\Todo}[1]{$\langle$\textbf{To do:}~#1$\rangle$}
+
+\EndFmtInput
+\makeatother
+%
+%
+%
+% First, let's redefine the forall, and the dot.
+%
+%
+% This is made in such a way that after a forall, the next
+% dot will be printed as a period, otherwise the formatting
+% of `comp_` is used. By redefining `comp_`, as suitable
+% composition operator can be chosen. Similarly, period_
+% is used for the period.
+%
+\ReadOnlyOnce{forall.fmt}%
+\makeatletter
+
+% The HaskellResetHook is a list to which things can
+% be added that reset the Haskell state to the beginning.
+% This is to recover from states where the hacked intelligence
+% is not sufficient.
+
+\let\HaskellResetHook\empty
+\newcommand*{\AtHaskellReset}[1]{%
+  \g@addto@macro\HaskellResetHook{#1}}
+\newcommand*{\HaskellReset}{\HaskellResetHook}
+
+\global\let\hsforallread\empty
+
+\newcommand\hsforall{\global\let\hsdot=\hsperiodonce}
+\newcommand*\hsperiodonce[2]{#2\global\let\hsdot=\hscompose}
+\newcommand*\hscompose[2]{#1}
+
+\AtHaskellReset{\global\let\hsdot=\hscompose}
+
+% In the beginning, we should reset Haskell once.
+\HaskellReset
+
+\makeatother
+\EndFmtInput
+%
+%
+%
+%
+%
+% This package provides two environments suitable to take the place
+% of hscode, called "plainhscode" and "arrayhscode". 
+%
+% The plain environment surrounds each code block by vertical space,
+% and it uses \abovedisplayskip and \belowdisplayskip to get spacing
+% similar to formulas. Note that if these dimensions are changed,
+% the spacing around displayed math formulas changes as well.
+% All code is indented using \leftskip.
+%
+% Changed 19.08.2004 to reflect changes in colorcode. Should work with
+% CodeGroup.sty.
+%
+\ReadOnlyOnce{polycode.fmt}%
+\makeatletter
+
+\newcommand{\hsnewpar}[1]%
+  {{\parskip=0pt\parindent=0pt\par\vskip #1\noindent}}
+
+% can be used, for instance, to redefine the code size, by setting the
+% command to \small or something alike
+\newcommand{\hscodestyle}{}
+
+% The command \sethscode can be used to switch the code formatting
+% behaviour by mapping the hscode environment in the subst directive
+% to a new LaTeX environment.
+
+\newcommand{\sethscode}[1]%
+  {\expandafter\let\expandafter\hscode\csname #1\endcsname
+   \expandafter\let\expandafter\endhscode\csname end#1\endcsname}
+
+% "compatibility" mode restores the non-polycode.fmt layout.
+
+\newenvironment{compathscode}%
+  {\par\noindent
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed\)%
+   \par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\compaths}{\sethscode{compathscode}}
+
+% "plain" mode is the proposed default.
+% It should now work with \centering.
+% This required some changes. The old version
+% is still available for reference as oldplainhscode.
+
+\newenvironment{plainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\hspre\(\let\hspost\)%
+   \pboxed}%
+  {\endpboxed%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newenvironment{oldplainhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+% Here, we make plainhscode the default environment.
+
+\newcommand{\plainhs}{\sethscode{plainhscode}}
+\newcommand{\oldplainhs}{\sethscode{oldplainhscode}}
+\plainhs
+
+% The arrayhscode is like plain, but makes use of polytable's
+% parray environment which disallows page breaks in code blocks.
+
+\newenvironment{arrayhscode}%
+  {\hsnewpar\abovedisplayskip
+   \advance\leftskip\mathindent
+   \hscodestyle
+   \let\\=\@normalcr
+   \(\parray}%
+  {\endparray\)%
+   \hsnewpar\belowdisplayskip
+   \ignorespacesafterend}
+
+\newcommand{\arrayhs}{\sethscode{arrayhscode}}
+
+% The mathhscode environment also makes use of polytable's parray 
+% environment. It is supposed to be used only inside math mode 
+% (I used it to typeset the type rules in my thesis).
+
+\newenvironment{mathhscode}%
+  {\parray}{\endparray}
+
+\newcommand{\mathhs}{\sethscode{mathhscode}}
+
+% texths is similar to mathhs, but works in text mode.
+
+\newenvironment{texthscode}%
+  {\(\parray}{\endparray\)}
+
+\newcommand{\texths}{\sethscode{texthscode}}
+
+% The framed environment places code in a framed box.
+
+\def\codeframewidth{\arrayrulewidth}
+\RequirePackage{calc}
+
+\newenvironment{framedhscode}%
+  {\parskip=\abovedisplayskip\par\noindent
+   \hscodestyle
+   \arrayrulewidth=\codeframewidth
+   \tabular{@{}|p{\linewidth-2\arraycolsep-2\arrayrulewidth-2pt}|@{}}%
+   \hline\framedhslinecorrect\\{-1.5ex}%
+   \let\endoflinesave=\\
+   \let\\=\@normalcr
+   \(\pboxed}%
+  {\endpboxed\)%
+   \framedhslinecorrect\endoflinesave{.5ex}\hline
+   \endtabular
+   \parskip=\belowdisplayskip\par\noindent
+   \ignorespacesafterend}
+
+\newcommand{\framedhslinecorrect}[2]%
+  {#1[#2]}
+
+\newcommand{\framedhs}{\sethscode{framedhscode}}
+
+% The inlinehscode environment is an experimental environment
+% that can be used to typeset displayed code inline.
+
+\newenvironment{inlinehscode}%
+  {\(\def\column##1##2{}%
+   \let\>\undefined\let\<\undefined\let\\\undefined
+   \newcommand\>[1][]{}\newcommand\<[1][]{}\newcommand\\[1][]{}%
+   \def\fromto##1##2##3{##3}%
+   \def\nextline{}}{\) }%
+
+\newcommand{\inlinehs}{\sethscode{inlinehscode}}
+
+% The joincode environment is a separate environment that
+% can be used to surround and thereby connect multiple code
+% blocks.
+
+\newenvironment{joincode}%
+  {\let\orighscode=\hscode
+   \let\origendhscode=\endhscode
+   \def\endhscode{\def\hscode{\endgroup\def\@currenvir{hscode}\\}\begingroup}
+   %\let\SaveRestoreHook=\empty
+   %\let\ColumnHook=\empty
+   %\let\resethooks=\empty
+   \orighscode\def\hscode{\endgroup\def\@currenvir{hscode}}}%
+  {\origendhscode
+   \global\let\hscode=\orighscode
+   \global\let\endhscode=\origendhscode}%
+
+\makeatother
+\EndFmtInput
+%
+
+
+\ReadOnlyOnce{Formatting.fmt}%
+\makeatletter
+
+\let\Varid\mathsf
+\let\Conid\mathsf
+%%subst keyword a        = "\keyw{" a "}"
+%%subst numeral a        = "\con{" a "}"
+%%subst string  a        = "\con{\text{\tt \char34 " a "\char34}}"
+%%subst char    a        = "\con{\text{\tt ''" a "''}}"
+
+%%\colorlet{identifier}{blue!45!black}
+%%\colorlet{constructor}{green!45!black}
+%%\colorlet{keyword}{red!40!black}
+%%\colorlet{darkgreen}{green!30!black}
+
+%%\newcommand{\keyw}[1]{{\color{keyword}\textsf{\textbf{#1}}}}
+\newcommand{\ty}[1]{\Conid{#1}}
+\newcommand{\con}[1]{\Conid{#1}}
+\newcommand{\id}[1]{\Varid{#1}}
+\newcommand{\cl}[1]{\Varid{#1}}
+\newcommand{\opsym}[1]{\mathrel{#1}}
+
+\newcommand\Keyword[1]{\textbf{\textsf{#1}}}
+\newcommand\Hide{\mathbin{\downarrow}}
+\newcommand\Reveal{\mathbin{\uparrow}}
+
+
+
+
+\def\commentbegin{\quad\{\ }
+\def\commentend{\}}
+
+\makeatother
+\EndFmtInput
+
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\begin{document}
+
+\paragraph{Simple aggregation} Recall the definitions:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathbf{type}\;\Conid{Partition}\;\Varid{a}\mathrel{=}[\mskip1.5mu \Varid{a}\mskip1.5mu]{}\<[E]%
+\\
+\>[3]{}\mathbf{type}\;\Conid{RDD}\;\Varid{a}\mathrel{=}[\mskip1.5mu \Conid{Partition}\;\Varid{a}\mskip1.5mu]{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{aggregate}\mathbin{::}\Varid{b}\to (\Varid{b}\to \Varid{a}\to \Varid{b})\to (\Varid{b}\to \Varid{b}\to \Varid{b})\to \Conid{RDD}\;\Varid{a}\to \Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{aggregate}\;\Varid{z}\;(\otimes)\;(\oplus)\mathrel{=}\Varid{foldl}\;(\oplus)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\otimes)\;\Varid{z}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\paragraph{Aggregation for pair RDDs}
+Extending aggregation to pair RDDs:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\mathbf{type}\;\Conid{PairRDD}\;\Varid{a}\;\Varid{b}\mathrel{=}\Conid{RDD}\;(\Varid{a},\Varid{b}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{key}\mathbin{::}(\Varid{a},\Varid{b})\to \Varid{a}{}\<[E]%
+\\
+\>[3]{}\Varid{key}\mathrel{=}\Varid{fst}{}\<[E]%
+\\
+\>[3]{}\Varid{value}\mathbin{::}(\Varid{a},\Varid{b})\to \Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{value}\mathrel{=}\Varid{snd}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+The functional call \ensuremath{\Varid{hasValye}\;\Varid{k}\;\Varid{v}\;\Varid{ps}} locates the rightmost occurrence
+of \ensuremath{(\Varid{k},\Varid{u})} in \ensuremath{\Varid{ps}}, if any, and returns \ensuremath{\Varid{u}}. Otherwise it returns the
+default value \ensuremath{\Varid{v}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{hasValue}\mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow \Varid{a}\to \Varid{b}\to [\mskip1.5mu (\Varid{a},\Varid{b})\mskip1.5mu]\to \Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{hasValue}\;\Varid{k}\;\Varid{v}\;\Varid{ps}\mathrel{=}\Varid{last}_\Varid{v}\;(\Varid{map}\;\Varid{value}\;(\Varid{filter}\;((\equiv \Varid{k})\hsdot{\circ }{.}\Varid{key})\;\Varid{ps})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+where \ensuremath{\Varid{last}_\Varid{v}\mathrel{=}\Varid{last}\hsdot{\circ }{.}(\Varid{v}\mathbin{:})} (thus \ensuremath{\Varid{last}_\Varid{v}\;[\mskip1.5mu \mskip1.5mu]\mathrel{=}\Varid{v}}). The definition
+above is equivalent to \ensuremath{\Varid{foldl}\;(\lambda \Varid{r}\;\Varid{p}\to \mathbf{if}\;\Varid{k}\equiv \Varid{key}\;\Varid{p}\;\mathbf{then}\;\Varid{value}\;\Varid{p}\;\mathbf{else}\;\Varid{r})\;\Varid{v}}. Also, let \ensuremath{\Varid{keyEq}\;\Varid{k}\mathrel{=}(\equiv \Varid{k})\hsdot{\circ }{.}\Varid{key}}, since we use it often
+
+
+
+The function \ensuremath{\Varid{addTo}} updates a key-value list by a given key-value pair.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{addTo}\mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow \Varid{a}\to \Varid{b}\to [\mskip1.5mu (\Varid{a},\Varid{b})\mskip1.5mu]\to [\mskip1.5mu (\Varid{a},\Varid{b})\mskip1.5mu]{}\<[E]%
+\\
+\>[3]{}\Varid{addTo}\;\Varid{k}\;\Varid{v}\;\Varid{ps}\mathrel{=}(\Varid{k},\Varid{v})\mathbin{:}\Varid{filter}\;(\neg \hsdot{\circ }{.}(\equiv \Varid{k})\hsdot{\circ }{.}\Varid{key})\;\Varid{ps}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Given \ensuremath{(\odot)\mathbin{::}\Varid{c}\to \Varid{b}\to \Varid{c}}, \ensuremath{(\hat{\odot}_z)\mathbin{::}[\mskip1.5mu (\Varid{a},\Varid{c})\mskip1.5mu]\to (\Varid{a},\Varid{b})\to [\mskip1.5mu (\Varid{a},\Varid{c})\mskip1.5mu]} is
+\ensuremath{(\odot)} lifted to list of key-value pairs:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\hat{\cdot }_\cdot \mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow (\Varid{c}\to \Varid{b}\to \Varid{c})\to \Varid{c}\to [\mskip1.5mu (\Varid{a},\Varid{c})\mskip1.5mu]\to (\Varid{a},\Varid{b})\to [\mskip1.5mu (\Varid{a},\Varid{c})\mskip1.5mu]{}\<[E]%
+\\
+\>[3]{}\Varid{r}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})\mathrel{=}\Varid{addTo}\;\Varid{k}\;(\Varid{hasValue}\;\Varid{k}\;\Varid{z}\;\Varid{r}\odot\Varid{v})\;\Varid{r}{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+It is helpful to give \ensuremath{(\hat{\odot}_z)} an inductive characterization:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{18}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{33}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{46}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}[\mskip1.5mu \mskip1.5mu]{}\<[18]%
+\>[18]{}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[33]%
+\>[33]{}\mathrel{=}[\mskip1.5mu (\Varid{k},\Varid{z}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}(\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu]){}\<[18]%
+\>[18]{}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[33]%
+\>[33]{}\mid \Varid{k}\equiv \Varid{j}{}\<[46]%
+\>[46]{}\mathrel{=}\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[33]{}\mid \Varid{otherwise}{}\<[46]%
+\>[46]{}\mathrel{=}(\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}))\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu]{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+The function \ensuremath{\Varid{repartition}} is unspecified. The following dummy definition
+is merely there to allow the code to type check.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{repartition}\mathbin{::}[\mskip1.5mu (\Varid{a},\Varid{b})\mskip1.5mu]\to \Conid{PairRDD}\;\Varid{a}\;\Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{repartition}\;\Varid{xs}\mathrel{=}[\mskip1.5mu \Varid{xs}\mskip1.5mu]{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Finally, \ensuremath{\Varid{aggregateByKey}} may be defined by:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{22}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{aggregateByKey}\mathbin{::}{}\<[22]%
+\>[22]{}\Conid{Eq}\;\Varid{a}\Rightarrow \Varid{c}\to (\Varid{c}\to \Varid{b}\to \Varid{c})\to (\Varid{c}\to \Varid{c}\to \Varid{c})\to {}\<[E]%
+\\
+\>[22]{}\Conid{PairRDD}\;\Varid{a}\;\Varid{b}\to \Conid{PairRDD}\;\Varid{a}\;\Varid{c}{}\<[E]%
+\\
+\>[3]{}\Varid{aggregateByKey}\;\Varid{z}\;(\otimes)\;(\oplus)\mathrel{=}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{repartition}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+
+
+\paragraph{Aggregation with a given key}
+The function \ensuremath{\Varid{aggregateWithKey}}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{9}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{aggregateWithKey}\mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow {}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{a}\to \Varid{c}\to (\Varid{c}\to \Varid{b}\to \Varid{c})\to (\Varid{c}\to \Varid{c}\to \Varid{c})\to \Conid{PairRDD}\;\Varid{a}\;\Varid{b}\to \Varid{c}{}\<[E]%
+\\
+\>[3]{}\Varid{aggregateWithKey}\;\Varid{k}\;\Varid{z}\;(\otimes)\;(\oplus)\mathrel{=}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{aggregate}\;\Varid{z}\;(\otimes)\;(\oplus)\hsdot{\circ }{.}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}{}\<[E]%
+\\
+\>[7]{}\hsindent{2}{}\<[9]%
+\>[9]{}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{lookUp}\mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow \Varid{a}\to \Varid{b}\to \Conid{PairRDD}\;\Varid{a}\;\Varid{b}\to \Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{lookUp}\;\Varid{k}\;\Varid{z}\mathrel{=}\Varid{last}_\Varid{z}\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;((\equiv \Varid{k})\hsdot{\circ }{.}\Varid{key})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{lookUpL}\mathbin{::}\Conid{Eq}\;\Varid{a}\Rightarrow \Varid{a}\to \Varid{b}\to [\mskip1.5mu (\Varid{a},\Varid{b})\mskip1.5mu]\to \Varid{b}{}\<[E]%
+\\
+\>[3]{}\Varid{lookUpL}\;\Varid{k}\;\Varid{z}\mathrel{=}\Varid{last}_\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;((\equiv \Varid{k})\hsdot{\circ }{.}\Varid{key}){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\begin{lemma}
+\label{lemma:filter-lift} For all \ensuremath{\Varid{j}}, \ensuremath{\Varid{k}}, \ensuremath{\Varid{xs}}, \ensuremath{\Varid{v}}, \ensuremath{\Varid{z}}, and \ensuremath{(\odot)}, we have:
+\begin{enumerate}
+  \item  \ensuremath{\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}))\mathrel{=}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})}.
+  \item \ensuremath{\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{j},\Varid{v}))\mathrel{=}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}}, if \ensuremath{\Varid{k}\not\equiv \Varid{j}}.
+\end{enumerate}
+
+\end{lemma}
+\begin{proof}
+We prove 1. only. 
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}[\mskip1.5mu \mskip1.5mu]}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;([\mskip1.5mu \mskip1.5mu]\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;[\mskip1.5mu (\Varid{k},\Varid{z}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{z}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu \mskip1.5mu]\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;[\mskip1.5mu \mskip1.5mu]\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu]}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{54}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;((\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu])\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  inductive definition of \ensuremath{(\hat{\odot}_z)}  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u}\odot\Varid{v})\mskip1.5mu]){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  inductive definition of \ensuremath{(\hat{\odot}_z)}  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu])\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu])\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[54]%
+\>[54]{}~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu]}, where \ensuremath{\Varid{j}\not\equiv \Varid{k}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{54}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;((\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu])\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  inductive definition of \ensuremath{(\hat{\odot}_z)}  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;((\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}))\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu]){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  induction  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{l})\;\Varid{xs}\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{u})\mskip1.5mu])\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[54]%
+\>[54]{}~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\end{proof}
+
+\begin{lemma}
+  \label{lemma:filter-fold}
+  For all \ensuremath{\Varid{k}}, \ensuremath{(\oplus)}, and \ensuremath{\Varid{z}}, we have
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[B]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\mathrel{=}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{lemma}
+\begin{proof}
+Induction on the input.
+
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}[\mskip1.5mu \mskip1.5mu]}. Both sides reduces to \ensuremath{[\mskip1.5mu \mskip1.5mu]}.
+
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]}
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu])){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;\Varid{xs}\mathbin{\hat{\oplus}_z}(\Varid{k},\Varid{v})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:filter-lift}  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;\Varid{xs})\mathbin{\hat{\oplus}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  induction  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs})\mathbin{\hat{\oplus}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu])){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\noindent {\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{v})\mskip1.5mu]}, where \ensuremath{\Varid{j}\not\equiv \Varid{k}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{v})\mskip1.5mu])){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;\Varid{xs}\mathbin{\hat{\oplus}_z}(\Varid{j},\Varid{v})){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:filter-lift}  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;\Varid{xs}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  induction  \commentend}{}\<[E]%
+\\[\blanklineskip]%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}){}\<[E]%
+\\[\blanklineskip]%
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{v})\mskip1.5mu])){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\end{proof}
+
+\begin{lemma} \label{lemma:fold-lodot-odot}
+For all \ensuremath{\Varid{k}}, \ensuremath{(\odot)}, and \ensuremath{\Varid{z}}, we have
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}\mathrel{=}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs})\mskip1.5mu]{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+if there exists at least one \ensuremath{(\Varid{k},\Varid{v})} in \ensuremath{\Varid{xs}}. Otherwise
+\ensuremath{\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}\mathrel{=}[\mskip1.5mu \mskip1.5mu]}.
+%  last' z . map value . foldl loplus [] . filter (keyEq k) =
+%    foldl oplus z . map value  . filter (keyEq k) {-"~~."-}
+
+
+\end{lemma}
+\begin{proof}
+  The "otherwise" part is trivially true. For the first part,
+we perform an induction on the input.
+
+\noindent{\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}[\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]}. Both sides reduce to \ensuremath{[\mskip1.5mu (\Varid{k},\Varid{z}\odot\Varid{v})\mskip1.5mu]}.
+
+\noindent{\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]}.
+\begin{itemize}
+  \item {\bf Case} there exists at least one \ensuremath{[\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu]} in \ensuremath{\Varid{xs}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu])){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs})\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  induction  \commentend}{}\<[E]%
+\\
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs})\mskip1.5mu]\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  definition of \ensuremath{(\hat{\oplus}_z)}  \commentend}{}\<[E]%
+\\
+\>[4]{}[\mskip1.5mu (\Varid{k},(\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs})\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]))\mskip1.5mu]~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+  \item {\bf Case} \ensuremath{[\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu]} does not occur in \ensuremath{\Varid{xs}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu])){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs})\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  \ensuremath{\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}\mathrel{=}[\mskip1.5mu \mskip1.5mu]}  \commentend}{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu \mskip1.5mu]\mathbin{\hat{\odot}_z}(\Varid{k},\Varid{v}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{z}\odot\Varid{v})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]))\mskip1.5mu]~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{itemize}
+
+\noindent{\bf Case} \ensuremath{\Varid{xs}\mathbin{:=}\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{v})\mskip1.5mu]} where \ensuremath{\Varid{j}\not\equiv \Varid{k}}. In this case there must exists some \ensuremath{[\mskip1.5mu (\Varid{k},\Varid{u})\mskip1.5mu]} in \ensuremath{\Varid{xs}}.
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;(\Varid{xs}\plus [\mskip1.5mu (\Varid{j},\Varid{v})\mskip1.5mu])){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\;(\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\;\Varid{xs}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[5]{}\mbox{\commentbegin  induction  \commentend}{}\<[E]%
+\\
+\>[B]{}\hsindent{4}{}\<[4]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs})\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}[\mskip1.5mu (\Varid{k},\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}(\Varid{xs}\plus [\mskip1.5mu (\Varid{k},\Varid{v})\mskip1.5mu]))\mskip1.5mu]~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+\end{proof}
+
+\begin{corollary}
+As a corollary, we have that for all \ensuremath{\Varid{k}}, \ensuremath{(\odot)}, and \ensuremath{\Varid{z}},
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{last\char95 z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{=}{}\<[E]%
+\\
+\>[3]{}\hsindent{2}{}\<[5]%
+\>[5]{}\Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+When the input is empty or does not contain entries having key \ensuremath{\Varid{k}}, both
+sides reduce to \ensuremath{\Varid{z}}.
+\end{corollary}
+
+\begin{corollary} For all \ensuremath{\Varid{k}}, \ensuremath{\Varid{z}} and \ensuremath{(\odot)} we have:
+\label{cor:lower-level}
+  \begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{7}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[5]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\odot}_z)\;[\mskip1.5mu \mskip1.5mu])\mathrel{=}{}\<[E]%
+\\
+\>[5]{}\hsindent{2}{}\<[7]%
+\>[7]{}\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{corollary}
+\begin{proof} We reason:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:filter-fold}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+Let the input be \ensuremath{\Varid{xss}}. Induction.
+
+\noindent{Case} \ensuremath{\Varid{xss}\mathbin{:=}[\mskip1.5mu \mskip1.5mu]}. Both sides reduce to \ensuremath{[\mskip1.5mu \mskip1.5mu]}
+
+\noindent{Case} \ensuremath{\Varid{xss}\mathbin{:=}\Varid{xss}\plus [\mskip1.5mu \Varid{xs}\mskip1.5mu]}
+\begin{itemize}
+  \item there exists at least one \ensuremath{(\Varid{k},\Varid{v})} in \ensuremath{\Varid{xs}}
+  \begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{5}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}(\Varid{xss}\plus [\mskip1.5mu \Varid{xs}\mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}(\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}\Varid{xss})\plus {}\<[E]%
+\\
+\>[4]{}\hsindent{1}{}\<[5]%
+\>[5]{}(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  induction \commentend}{}\<[E]%
+\\
+\>[4]{}(\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}\Varid{xss})\plus {}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:fold-lodot-odot}  \commentend}{}\<[E]%
+\\
+\>[4]{}(\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}\Varid{xss})\plus {}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}[\mskip1.5mu \Varid{foldl}\;(\odot)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}\mskip1.5mu]{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}(\Varid{xss}\plus [\mskip1.5mu \Varid{xs}\mskip1.5mu]){}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+  \item there exists no \ensuremath{(\Varid{k},\Varid{v})} in \ensuremath{\Varid{xs}}.
+  \begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}(\Varid{xss}\plus [\mskip1.5mu \Varid{xs}\mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  same as above  \commentend}{}\<[E]%
+\\
+\>[4]{}(\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}\Varid{xss})\plus {}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\mathrel{\$}\Varid{xs}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:fold-lodot-odot}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}\Varid{xss}{}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\Varid{map}\;(\Varid{foldl}\;(\odot)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\mathrel{\$}(\Varid{xss}\plus [\mskip1.5mu \Varid{xs}\mskip1.5mu])~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{itemize}
+\end{proof}
+
+Finally, the main theorem:
+
+\begin{theorem} For all \ensuremath{\Varid{k}}, \ensuremath{\Varid{z}}, \ensuremath{(\otimes)} and \ensuremath{(\oplus)}, we have:
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{3}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[3]{}\Varid{lookUp}\;\Varid{k}\hsdot{\circ }{.}\Varid{aggregateByKey}\;\Varid{z}\;(\otimes)\;(\oplus)\mathrel{=}\Varid{aggregateWithKey}\;\Varid{k}\;\Varid{z}\;(\otimes)\;(\oplus)~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+\end{theorem}
+\begin{proof} We reason:
+
+\begin{hscode}\SaveRestoreHook
+\column{B}{@{}>{\hspre}c<{\hspost}@{}}%
+\column{BE}{@{}l@{}}%
+\column{4}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{6}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{39}{@{}>{\hspre}l<{\hspost}@{}}%
+\column{E}{@{}>{\hspre}l<{\hspost}@{}}%
+\>[4]{}\Varid{lookUp}\;\Varid{k}\hsdot{\circ }{.}\Varid{aggregateByKey}\;\Varid{z}\;(\otimes)\;(\oplus){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  definition of \ensuremath{\Varid{lookUp}} and \ensuremath{\Varid{aggregateByKey}}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{last}_\Varid{z}\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}))\hsdot{\circ }{.}{}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}\Varid{repartition}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin   routine naturalty laws. See below.  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{last}_\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}{}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Lemma \ref{lemma:filter-fold}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{last}_\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\oplus}_z)\;[\mskip1.5mu \mskip1.5mu]\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}{}\<[E]%
+\\
+\>[4]{}\hsindent{2}{}\<[6]%
+\>[6]{}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  corollary of Lemma \ref{lemma:fold-lodot-odot}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{foldl}\;(\oplus)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  naturalty, \ensuremath{\Varid{filter}\;\Varid{p}\hsdot{\circ }{.}\Varid{concat}\mathrel{=}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{filter}\;\Varid{p})}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{foldl}\;(\oplus)\;\Varid{z}\hsdot{\circ }{.}\Varid{concat}\hsdot{\circ }{.}\Varid{map}\;(\Varid{map}\;\Varid{value}\hsdot{\circ }{.}\Varid{filter}\;(\Varid{keyEq}\;\Varid{k})\hsdot{\circ }{.}\Varid{foldl}\;(\hat{\otimes}_z)\;[\mskip1.5mu \mskip1.5mu]){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  Corollary \ref{cor:lower-level}  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{foldl}\;(\oplus)\;\Varid{z}\hsdot{\circ }{.}\Varid{map}\;(\Varid{foldl}\;(\otimes)\;\Varid{z})\hsdot{\circ }{.}\Varid{filter}\;(\neg \hsdot{\circ }{.}\Varid{null})\hsdot{\circ }{.}\Varid{map}\;\Varid{filter}\;(\Varid{keyEq}\;\Varid{k}){}\<[E]%
+\\
+\>[B]{}\mathrel{=}{}\<[BE]%
+\>[4]{}\mbox{\commentbegin  definition  \commentend}{}\<[E]%
+\\
+\>[4]{}\Varid{aggregateWithKey}\;\Varid{k}\;\Varid{z}\;(\otimes)\;(\oplus){}\<[39]%
+\>[39]{}~~.{}\<[E]%
+\ColumnHook
+\end{hscode}\resethooks
+
+The "routine naturalty laws" in the second step we need are:
+\begin{itemize}
+  \item \ensuremath{\Varid{map}\;(\Varid{filter}\;\Varid{p})\hsdot{\circ }{.}\Varid{repartition}\mathrel{=}\Varid{repartition}\hsdot{\circ }{.}\Varid{filter}\;\Varid{p}},
+  \item \ensuremath{\Varid{map}\;(\Varid{map}\;\Varid{f})\hsdot{\circ }{.}\Varid{repartition}\mathrel{=}\Varid{repartition}\hsdot{\circ }{.}\Varid{map}\;\Varid{f}},
+  \item \ensuremath{\Varid{concat}\hsdot{\circ }{.}\Varid{partition}\mathrel{=}\Varid{id}}.
+\end{itemize}
+\end{proof}
+
+\end{document}
